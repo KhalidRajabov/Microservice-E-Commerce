@@ -25,16 +25,25 @@ namespace EventBus.UnitTest
         {
             service.AddSingleton<IEventBus>(sp =>
             {
-                EventBusConfig config = new()
-                {
-                    ConnectionRetryCount=5,
-                    SubscribeClientAppName="EventBus.UnitTest",
-                    DefaultTopicName = "E-CommerceMicroserviceEventBus",
-                    EventBusType= EventBusType.RabbitMQ,
-                    EventNameSuffix = "IntegrationEvent",
-                    
-                };
-                return EventBusFactory.Create(config, sp);
+                return EventBusFactory.Create(GetRabbitMQConfig(), sp);
+            });
+            var sp = service.BuildServiceProvider();
+
+            var eventBus = sp.GetRequiredService<IEventBus>();
+
+            eventBus.Subscribe<OrderCreatedIntegrationEvent, OrderCreatedIntegrationEventHandler>();
+            //eventBus.UnSubscribe<OrderCreatedIntegrationEvent, OrderCreatedIntegrationEventHandler>();
+        }
+
+
+
+        //This DOES work, but I am not gonna use Azure Service Bus, but only RabbitMQ
+        [TestMethod]
+        public void subscribe_event_on_azure_test()
+        {
+            service.AddSingleton<IEventBus>(sp =>
+            {
+                return EventBusFactory.Create(GetAzureConfig(), sp);
             });
             var sp = service.BuildServiceProvider();
 
@@ -42,6 +51,63 @@ namespace EventBus.UnitTest
 
             eventBus.Subscribe<OrderCreatedIntegrationEvent, OrderCreatedIntegrationEventHandler>();
             eventBus.UnSubscribe<OrderCreatedIntegrationEvent, OrderCreatedIntegrationEventHandler>();
+        }
+
+        [TestMethod]
+        public void send_message_to_rabbitmq_test()
+        {
+            service.AddSingleton<IEventBus>(sp =>
+            {
+                return EventBusFactory.Create(GetRabbitMQConfig(), sp);
+            });
+            var sp = service.BuildServiceProvider();
+            var eventBus = sp.GetRequiredService<IEventBus>();
+            eventBus.Publish(new OrderCreatedIntegrationEvent(1));
+        }
+
+        [TestMethod]
+        public void send_message_to_azure_test()
+        {
+            service.AddSingleton<IEventBus>(sp =>
+            {
+                return EventBusFactory.Create(GetAzureConfig(), sp);
+            });
+            var sp = service.BuildServiceProvider();
+            var eventBus = sp.GetRequiredService<IEventBus>();
+            eventBus.Publish(new OrderCreatedIntegrationEvent(1));
+        }
+
+
+        private EventBusConfig GetAzureConfig()
+        {
+            return new EventBusConfig()
+            {
+                ConnectionRetryCount = 5,
+                SubscribeClientAppName = "EventBus.UnitTest",
+                DefaultTopicName = "E-CommerceMicroserviceEventBus",
+                EventBusType = EventBusType.AzureServiceBus,
+                EventNameSuffix = "IntegrationEvent",
+                EventBusConnectionString = ""
+            };
+        }
+
+        private EventBusConfig GetRabbitMQConfig()
+        {
+            return new EventBusConfig()
+            {
+                ConnectionRetryCount = 5,
+                SubscribeClientAppName = "EventBus.UnitTest",
+                DefaultTopicName = "E-CommerceMicroserviceEventBus",
+                EventBusType = EventBusType.RabbitMQ,
+                EventNameSuffix = "IntegrationEvent",
+                /*Connection = new ConnectionFactory()
+                {
+                    HostName= "localhost",
+                    Port=15672,
+                    UserName="guest",
+                    Password="guest"
+                }*/
+            };
         }
     }
 }
