@@ -17,3 +17,4 @@ namespace EventBus.UnitTest.Events.EventHandlers
         }
     }
 }
+ 
